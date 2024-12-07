@@ -116,12 +116,12 @@ const config = {
             position: "left",
             items: [
               {
-                label: "脚本扩展",
-                to: "/docs/extension",
+                label: "🔥免费AI会话",
+                href: "https://lobechat.tx88.eu.org/",
               },
               {
                 label: "IMGPrompt",
-                href: "https://prompt.newzone.top/",
+                href: "https://img-prompt.tx88.eu.org/",
               },
               {
                 label: "文字处理",
@@ -131,10 +131,6 @@ const config = {
                 label: "工具收藏",
                 href: "https://nav.newzone.top",
               },
-//              {
-//                label: "Find on Product Hunt",
-//                href: "https://www.producthunt.com/posts/chatgpt-shortcut?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-chatgpt&#0045;shortcut",
-//              },
             ],
           },
 //          {
