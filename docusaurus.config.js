@@ -11,7 +11,7 @@ import { themes as prismThemes } from "prism-react-renderer";
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: "AiShort(ChatGPT Shortcut)-AI Prompt Management,Productivity Tool",
+  title: "Ai Prompt(ChatGPT Shortcut)-AI Prompt Management,Productivity Tool",
   // tagline: '方便中文使用 ChatGPT 快捷指令',
   favicon: "img/favicon.ico",
 
@@ -94,15 +94,15 @@ const config = {
       ],
       navbar: {
         hideOnScroll: true,
-        title: "AI Short",
+        title: "AI Prompt",
         logo: {
-          alt: "ChatGPT Shortcuts",
+          alt: "ChatGPT Prompt",
           src: "img/logo.svg",
         },
         items: [
           {
-            to: "docs",
-            label: "📘 使用说明",
+            to: "https://lobechat.tx88.eu.org/",
+            label: "🔥 免费AI会话",
             position: "left",
           },
           {
