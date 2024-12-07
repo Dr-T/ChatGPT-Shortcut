@@ -131,43 +131,43 @@ const config = {
                 label: "工具收藏",
                 href: "https://nav.newzone.top",
               },
-              {
-                label: "Find on Product Hunt",
-                href: "https://www.producthunt.com/posts/chatgpt-shortcut?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-chatgpt&#0045;shortcut",
-              },
+//              {
+//                label: "Find on Product Hunt",
+//                href: "https://www.producthunt.com/posts/chatgpt-shortcut?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-chatgpt&#0045;shortcut",
+//              },
             ],
           },
-          {
-            type: "dropdown",
-            label: "反馈建议",
-            position: "left",
-            items: [
-              {
-                label: "📝 提交反馈",
-                to: "/feedback",
-              },
-              {
-                label: "💬 加入 QQ 群",
-                href: "https://img.newzone.top/qq736094782.jpg?imageMogr2/format/webp",
-              },
-              {
-                label: "📺 加入 Discord",
-                href: "https://discord.gg/PZTQfJ4GjX",
-              },
-            ],
-          },
+//          {
+//            type: "dropdown",
+//            label: "反馈建议",
+//            position: "left",
+//            items: [
+//              {
+//                label: "📝 提交反馈",
+//                to: "/feedback",
+//              },
+//              {
+//                label: "💬 加入 QQ 群",
+//                href: "https://img.newzone.top/qq736094782.jpg?imageMogr2/format/webp",
+//              },
+//              {
+//                label: "📺 加入 Discord",
+//                href: "https://discord.gg/PZTQfJ4GjX",
+//              },
+//            ],
+//          },
           // remove the language dropdown from the navbar (if you only have one language)
           { type: "localeDropdown", position: "right" },
-          {
-            href: "https://qm.qq.com/q/sHgB9eqd6E",
-            position: "right",
-            className: "header-qq-link",
-          },
-          {
-            href: "https://discord.gg/PZTQfJ4GjX",
-            position: "right",
-            className: "header-discord-link",
-          },
+//          {
+//            href: "https://qm.qq.com/q/sHgB9eqd6E",
+//            position: "right",
+//            className: "header-qq-link",
+//          },
+//          {
+//            href: "https://discord.gg/PZTQfJ4GjX",
+//            position: "right",
+//            className: "header-discord-link",
+//          },
           {
             href: "https://github.com/rockbenben/ChatGPT-Shortcut",
             position: "right",
