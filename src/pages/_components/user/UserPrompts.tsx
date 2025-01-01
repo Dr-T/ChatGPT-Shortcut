@@ -2,39 +2,42 @@ import React, { useContext, useState, useEffect, useCallback } from "react";
 import clsx from "clsx";
 import Translate, { translate } from "@docusaurus/Translate";
 import copy from "copy-text-to-clipboard";
-import styles from "../ShowcaseCard/styles.module.css";
-import { AuthContext } from "../AuthContext";
 import { Form, Input, Button, message, Spin, Modal, Typography, Tooltip, Switch, Tag } from "antd";
-import { getPrompts, updatePrompt, deletePrompt, updatePromptsOrder, updateLocalStorageCache } from "@site/src/api";
 import { CopyOutlined, DeleteOutlined, EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import styles from "../ShowcaseCard/styles.module.css";
 
-export default function UserPromptsPage() {
+import { getPrompts, updatePrompt, deletePrompt, updatePromptsOrder, updateLocalStorageCache } from "@site/src/api";
+import { AuthContext } from "../AuthContext";
+
+export default function UserPromptsPage({ filteredCommus = [], isFiltered = false }) {
   const { userAuth, refreshUserAuth } = useContext(AuthContext);
+  const [messageApi, contextHolder] = message.useMessage();
   const [userprompts, setUserPrompts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [hasDragged, setHasDragged] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
-
   const [open, setOpen] = useState(false);
+  const [editingPromptId, setEditingPromptId] = useState(null);
+  const [form] = Form.useForm();
 
   useEffect(() => {
-    if (!userAuth || !userAuth.data) {
-      return;
-    }
-    const myPrompts = userAuth.data.userprompts || [];
+    if (!userAuth?.data) return;
     const fetchPrompts = async () => {
       try {
-        const myPromptsData = await getPrompts("userprompts", myPrompts);
-        setUserPrompts(myPromptsData);
+        if (isFiltered) {
+          setUserPrompts(filteredCommus);
+        } else {
+          const myPrompts = userAuth.data?.userprompts || [];
+          const myPromptsData = await getPrompts("userprompts", myPrompts);
+          setUserPrompts(myPromptsData);
+        }
       } catch (error) {
-        console.error(error);
+        console.error("Failed to fetch prompts:", error);
       }
     };
-
     fetchPrompts();
-  }, [userAuth]);
+  }, [userAuth, isFiltered, filteredCommus]);
 
   const handleCopyClick = useCallback(
     (index) => {
@@ -50,9 +53,6 @@ export default function UserPromptsPage() {
     [userprompts]
   );
 
-  // 新增的状态变量，用于跟踪正在被编辑的 UserPrompt 的 id
-  const [editingPromptId, setEditingPromptId] = useState(null);
-  const [form] = Form.useForm();
   const handleEditPrompt = useCallback(
     (UserPrompt) => {
       setEditingPromptId(UserPrompt.id);
@@ -159,14 +159,22 @@ export default function UserPromptsPage() {
                 <li className="card shadow--md">
                   <div className={clsx("card__body", styles.cardBodyHeight)}>
                     <p>No user prompts submitted yet.</p>
-                    <p>Please submit your prompts.</p>
+                    <p>Please add your prompts.</p>
                   </div>
                 </li>
               ) : (
                 userprompts.map((UserPrompt, index) => (
-                  <Draggable key={UserPrompt.id} draggableId={UserPrompt.id.toString()} index={index}>
+                  <Draggable key={UserPrompt.id} draggableId={UserPrompt.id.toString()} index={index} isDragDisabled={isFiltered}>
                     {(provided) => (
-                      <li ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="card shadow--md">
+                      <li
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        className="card shadow--md"
+                        style={{
+                          ...provided.draggableProps.style,
+                          cursor: isFiltered ? "default" : "grab", // 根据筛选状态修改鼠标样式
+                        }}>
                         <div
                           className={clsx("card__body")}
                           style={{
