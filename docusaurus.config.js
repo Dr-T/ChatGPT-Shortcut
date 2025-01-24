@@ -41,15 +41,8 @@ const config = {
       },
     },
   },
-  /* future: {
-    experimental_faster: {
-      swcJsLoader: true,
-      swcJsMinimizer: true,
-      swcHtmlMinimizer: true,
-      lightningCssMinimizer: false,
-      rspackBundler: false,
-      mdxCrossCompilerCache: true,
-    },
+  /*   future: {
+    experimental_faster: true,
   }, */
 
   presets: [
