@@ -10,6 +10,7 @@ import ShareButtons from "@site/src/pages/_components/ShareButtons";
 import { AuthContext, AuthProvider } from "@site/src/pages/_components/AuthContext";
 import Layout from "@theme/Layout";
 import { Modal, Typography, Tooltip, message, Pagination, Dropdown, Space, Button, Input, ConfigProvider, theme } from "antd";
+import themeConfig from "@site/src/pages/_components/themeConfig";
 import { UpOutlined, DownOutlined, HomeOutlined, CopyOutlined, HeartOutlined, LoginOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
@@ -202,11 +203,7 @@ const CommunityPrompts = () => {
       <main className="margin-vert--md">
         <ConfigProvider
           theme={{
-            token: {
-              colorPrimary: "#397e6a",
-            },
-            cssVar: true,
-            hashed: false,
+            ...themeConfig,
             algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
           }}>
           {contextHolder}
@@ -258,7 +255,7 @@ const CommunityPrompts = () => {
                         </p>
                       </div>
                       <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <Button.Group>
+                        <Space.Compact>
                           <Tooltip title={translate({ id: "theme.CodeBlock.copy", message: "复制" })}>
                             <Button type="default" onClick={() => handleCopyClick(index)}>
                               <CopyOutlined />
@@ -282,8 +279,8 @@ const CommunityPrompts = () => {
                               <HeartOutlined />
                             </Button>
                           </Tooltip>
-                        </Button.Group>
-                        <Button.Group>
+                        </Space.Compact>
+                        <Space.Compact>
                           <Tooltip title={translate({ id: "upvote", message: "赞" })}>
                             <Button
                               type="default"
@@ -318,7 +315,7 @@ const CommunityPrompts = () => {
                               {votedDownPromptIds.includes(UserPrompt.id) ? (UserPrompt.downvotes || 0) + 1 : UserPrompt.downvotes || 0}
                             </Button>
                           </Tooltip>
-                        </Button.Group>
+                        </Space.Compact>
                       </div>
                     </div>
                   </li>
