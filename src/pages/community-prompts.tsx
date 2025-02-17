@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState, useCallback } from "react";
+import React, { useContext, useEffect, useState, useCallback, Suspense } from "react";
 import clsx from "clsx";
 import Translate, { translate } from "@docusaurus/Translate";
 import copy from "copy-text-to-clipboard";
@@ -6,40 +6,157 @@ import styles from "@site/src/pages/_components/ShowcaseCard/styles.module.css";
 import Link from "@docusaurus/Link";
 import { getCommPrompts, voteOnUserPrompt, createFavorite, updateFavorite } from "@site/src/api";
 import LoginComponent from "@site/src/pages/_components/user/login";
-import ShareButtons from "@site/src/pages/_components/ShareButtons";
 import { AuthContext, AuthProvider } from "@site/src/pages/_components/AuthContext";
 import Layout from "@theme/Layout";
-import { Modal, Typography, Tooltip, message, Pagination, Dropdown, Space, Button, Input, ConfigProvider, theme } from "antd";
-import themeConfig from "@site/src/pages/_components/themeConfig";
+import { Modal, Typography, Tooltip, message, Pagination, Dropdown, Space, Button, Input, ConfigProvider, theme, Skeleton } from "antd";
 import { UpOutlined, DownOutlined, HomeOutlined, CopyOutlined, HeartOutlined, LoginOutlined } from "@ant-design/icons";
+import themeConfig from "@site/src/pages/_components/themeConfig";
+import { COMMU_TITLE, COMMU_DESCRIPTION } from "@site/src/data/constants";
+
+const ShareButtons = React.lazy(() => import("@site/src/pages/_components/ShareButtons"));
 
 const { Search } = Input;
 const { Text } = Typography;
 
-const placeholderData = Array.from({ length: 12 }, (_, index) => ({
-  id: `placeholder-${index}`,
-  title: "Loading...",
-  description:
-    "You are an expert in scientific writing,  please use the rules and principles stated in the books Writing Science: How to Write Papers That Get Cited and Proposals That Get FundedYou are an expert in scientific writing,  please use the rules and principles stated in the books Writing Science: How to Write Papers That Get Cited and Proposals That Get FundedYou are an expert in scientific writing,  please use the rules and principles stated in the books Writing Science",
-  remark: null,
-  notes: null,
-  owner: "Loading...",
-  upvotes: 0,
-  downvotes: 0,
-}));
+const pageSize = 12;
 
-const TITLE = "AiShort Community Prompts - Share and find interesting prompts";
-const DESCRIPTION = translate({
-  id: "description.communityPrompts",
-  message:
-    "探索由 AiShort 用户分享的创新提示词集合，这些独特且有趣的提示词可以激发你在创作短视频、小说、游戏等内容时的灵感。投票支持你最爱的提示，将它们复制并与你的朋友分享。让 AiShort 帮助你打开创造力的大门，一起创作出色的作品吧。",
+const SKELETON_ITEMS = Array.from({ length: pageSize }, (_, index) => (
+  <li key={`skeleton-${index}`} className="card shadow--md">
+    <div className={clsx("card__body")} style={{ height: "250px", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+      <div>
+        <div className={styles.showcaseCardHeader}>
+          <Skeleton.Input active style={{ width: "60%" }} />
+          <Skeleton.Input active style={{ width: "20%", marginLeft: "10px" }} />
+        </div>
+        <Skeleton active paragraph={{ rows: 3 }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <Space.Compact>
+          <Skeleton.Button active />
+          <Skeleton.Button active />
+        </Space.Compact>
+        <Space.Compact>
+          <Skeleton.Button active />
+          <Skeleton.Button active />
+        </Space.Compact>
+      </div>
+    </div>
+  </li>
+));
+
+interface PromptCardProps {
+  prompt: {
+    id: number;
+    title: string;
+    owner: string;
+    remark?: string;
+    notes?: string;
+    description: string;
+    upvotes?: number;
+    downvotes?: number;
+  };
+  onCopy: (index: number) => void;
+  copiedIndex: number | null;
+  index: number;
+  onVote: (promptId: number, action: string) => void;
+  onBookmark: (promptId: number) => void;
+  votedUpPromptIds: number[];
+  votedDownPromptIds: number[];
+  userAuth: any;
+  messageApi: any;
+}
+
+const PromptCard: React.FC<PromptCardProps> = React.memo(({ prompt, onCopy, copiedIndex, index, onVote, onBookmark, votedUpPromptIds, votedDownPromptIds, userAuth, messageApi }) => {
+  const truncate = (str, num) => (str.length <= num ? str : `${str.slice(0, num)}...`);
+
+  return (
+    <li className="card shadow--md">
+      <div className={clsx("card__body")} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
+        <div>
+          <div className={clsx(styles.showcaseCardHeader)}>
+            <div className={`${styles.showcaseCardTitle} ${styles.shortEllipsis}`}>
+              <span className={styles.showcaseCardLink} style={{ color: "var(--ifm-color-primary)" }}>
+                {prompt.title}
+              </span>
+              <span style={{ fontSize: "12px", color: "#999", marginLeft: "10px" }}>@{prompt.owner}</span>
+            </div>
+          </div>
+          {prompt.remark && <p className={styles.showcaseCardBody}>👉 {prompt.remark}</p>}
+          <p className={styles.showcaseCardBody}>
+            {prompt.notes ? (
+              <Tooltip placement="right" title={truncate(prompt.notes, 300)} style={{ maxWidth: 450 }}>
+                {prompt.description}
+              </Tooltip>
+            ) : (
+              prompt.description
+            )}
+          </p>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <Space.Compact>
+            <Tooltip title={translate({ id: "theme.CodeBlock.copy", message: "复制" })}>
+              <Button type="default" onClick={() => onCopy(index)}>
+                <CopyOutlined />
+                {copiedIndex === index && <Translate id="theme.CodeBlock.copied">已复制</Translate>}
+              </Button>
+            </Tooltip>
+            <Tooltip title={translate({ message: "收藏" })}>
+              <Button
+                type="default"
+                onClick={() => {
+                  if (!userAuth) {
+                    messageApi.warning("Please log in to bookmark.");
+                    return;
+                  }
+                  onVote(prompt.id, "upvote");
+                  onBookmark(prompt.id);
+                }}>
+                <HeartOutlined />
+              </Button>
+            </Tooltip>
+          </Space.Compact>
+          <Space.Compact>
+            <Tooltip title={translate({ id: "upvote", message: "赞" })}>
+              <Button
+                type="default"
+                onClick={() => {
+                  if (!userAuth) {
+                    messageApi.warning("Please log in to vote.");
+                    return;
+                  }
+                  onVote(prompt.id, "upvote");
+                }}>
+                <UpOutlined />
+                {votedUpPromptIds.includes(prompt.id) ? (prompt.upvotes || 0) + 1 : prompt.upvotes || 0}
+              </Button>
+            </Tooltip>
+            <Tooltip title={translate({ id: "downvote", message: "踩" })}>
+              <Button
+                type="default"
+                onClick={() => {
+                  if (!userAuth) {
+                    messageApi.warning("Please log in to vote.");
+                    return;
+                  }
+                  onVote(prompt.id, "downvote");
+                }}>
+                <DownOutlined />
+                {votedDownPromptIds.includes(prompt.id) ? (prompt.downvotes || 0) + 1 : prompt.downvotes || 0}
+              </Button>
+            </Tooltip>
+          </Space.Compact>
+        </div>
+      </div>
+    </li>
+  );
 });
 
 const CommunityPrompts = () => {
   const { userAuth } = useContext(AuthContext);
   const [messageApi, contextHolder] = message.useMessage();
   const [open, setOpen] = useState(false);
-  const [userprompts, setUserPrompts] = useState(placeholderData);
+  const [loading, setLoading] = useState(true);
+  const [userprompts, setUserPrompts] = useState<PromptCardProps["prompt"][]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [sortField, setSortField] = useState("id");
@@ -50,13 +167,12 @@ const CommunityPrompts = () => {
   const [votedUpPromptIds, setVotedUpPromptIds] = useState<number[]>([]);
   const [votedDownPromptIds, setVotedDownPromptIds] = useState<number[]>([]);
 
-  const pageSize = 12;
-
   useEffect(() => {
     setShareUrl(window.location.href);
   }, []);
 
   useEffect(() => {
+    setLoading(true);
     fetchData(currentPage, pageSize, sortField, sortOrder, searchTerm);
   }, [currentPage, sortField, sortOrder, searchTerm]);
 
@@ -67,104 +183,102 @@ const CommunityPrompts = () => {
         setUserPrompts(result[0]);
         setTotal(result[1].data.meta.pagination.total);
       } else if (result && result[0].length === 0) {
-        messageApi.open({
-          type: "warning",
-          content: "No data found.",
-        });
+        messageApi.warning("No data found.");
         setUserPrompts([]);
         setTotal(0);
-      } else {
-        console.log("No data returned from the server");
       }
     } catch (error) {
       console.error("Failed to fetch community prompts:", error);
+      messageApi.error("Failed to fetch data");
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const onSearch = (value) => {
-    if (!userAuth) {
-      setOpen(true);
-      messageApi.open({
-        type: "warning",
-        content: "Please log in to search.",
-      });
-      return;
-    }
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+  const onSearch = useCallback(
+    (value) => {
+      if (!userAuth) {
+        setOpen(true);
+        messageApi.warning("Please log in to search.");
+        return;
+      }
+      setSearchTerm(value);
+      setCurrentPage(1);
+    },
+    [userAuth]
+  );
 
-  const vote = async (promptId, action) => {
+  const vote = useCallback(async (promptId, action) => {
     try {
       await voteOnUserPrompt(promptId, action);
-      messageApi.open({
-        type: "success",
-        content: `Successfully ${action}d!`,
-      });
+      messageApi.success(`Successfully ${action}d!`);
       const updateVotedIds = action === "upvote" ? setVotedUpPromptIds : setVotedDownPromptIds;
       updateVotedIds((prevIds) => [...prevIds, promptId]);
     } catch (err) {
-      messageApi.open({
-        type: "error",
-        content: `Failed to ${action}. Error: ${err}`,
-      });
+      messageApi.error(`Failed to ${action}. Error: ${err}`);
     }
-  };
+  }, []);
 
-  const bookmark = async (promptId) => {
-    try {
-      let userLoves;
-      let favoriteId;
+  const bookmark = useCallback(
+    async (promptId) => {
+      try {
+        let userLoves;
+        let favoriteId;
 
-      if (!userAuth.data.favorites) {
-        const createFavoriteResponse = await createFavorite([promptId], true);
-        userLoves = [promptId];
-        favoriteId = createFavoriteResponse.data.id;
-      } else {
-        userLoves = userAuth.data.favorites.commLoves || [];
-        favoriteId = userAuth.data.favorites.id;
+        if (!userAuth.data.favorites) {
+          const createFavoriteResponse = await createFavorite([promptId], true);
+          userLoves = [promptId];
+          favoriteId = createFavoriteResponse.data.id;
+        } else {
+          userLoves = userAuth.data.favorites.commLoves || [];
+          favoriteId = userAuth.data.favorites.id;
 
-        if (!userLoves.includes(promptId)) {
-          userLoves.push(promptId);
-          messageApi.open({
-            type: "success",
-            content: "Added to favorites successfully!",
-          });
+          if (!userLoves.includes(promptId)) {
+            userLoves.push(promptId);
+            messageApi.open({
+              type: "success",
+              content: "Added to favorites successfully!",
+            });
+          }
         }
+        await updateFavorite(favoriteId, userLoves, true);
+      } catch (err) {
+        messageApi.open({
+          type: "error",
+          content: `Failed to add to favorites. Error: ${err}`,
+        });
       }
-      await updateFavorite(favoriteId, userLoves, true);
-    } catch (err) {
-      messageApi.open({
-        type: "error",
-        content: `Failed to add to favorites. Error: ${err}`,
-      });
-    }
-  };
+    },
+    [userAuth]
+  );
 
-  const handleCopyClick = (index) => {
-    const UserPrompt = userprompts[index];
-    if (UserPrompt) {
-      copy(UserPrompt.description);
-      setCopiedIndex(index);
-      setTimeout(() => {
-        setCopiedIndex(null);
-      }, 2000);
-    }
-  };
+  const handleCopyClick = useCallback(
+    (index) => {
+      const UserPrompt = userprompts[index];
+      if (UserPrompt) {
+        copy(UserPrompt.description);
+        setCopiedIndex(index);
+        setTimeout(() => {
+          setCopiedIndex(null);
+        }, 2000);
+      }
+    },
+    [userprompts]
+  );
 
-  const onChangePage = (page) => {
+  const onChangePage = useCallback((page) => {
     setCurrentPage(page);
-  };
+  }, []);
 
-  const handleFieldClick = (e) => {
+  const handleFieldClick = useCallback((e) => {
     setCurrentPage(1);
     setSortField(e.key);
-  };
+  }, []);
 
-  const handleOrderClick = (e) => {
+  const handleOrderClick = useCallback((e) => {
     setCurrentPage(1);
     setSortOrder(e.key);
-  };
+  }, []);
 
   const fieldMenuProps = {
     items: [
@@ -194,12 +308,10 @@ const CommunityPrompts = () => {
     onClick: handleOrderClick,
   };
 
-  const truncate = (str, num) => (str.length <= num ? str : `${str.slice(0, num)}...`);
-
   const isDarkMode = typeof document !== "undefined" && document.documentElement.getAttribute("data-theme") === "dark";
 
   return (
-    <Layout title={TITLE} description={DESCRIPTION}>
+    <Layout title={COMMU_TITLE} description={COMMU_DESCRIPTION}>
       <main className="margin-vert--md">
         <ConfigProvider
           theme={{
@@ -231,95 +343,23 @@ const CommunityPrompts = () => {
                 <Search placeholder="Search" onSearch={onSearch} style={{ width: 200 }} allowClear />
               </Space>
               <ul className="clean-list showcaseList_Cwj2">
-                {userprompts.map((UserPrompt, index) => (
-                  <li key={UserPrompt.id} className="card shadow--md">
-                    <div className={clsx("card__body")} style={{ display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%" }}>
-                      <div>
-                        <div className={clsx(styles.showcaseCardHeader)}>
-                          <div className={`${styles.showcaseCardTitle} ${styles.shortEllipsis}`}>
-                            <span className={styles.showcaseCardLink} style={{ color: "var(--ifm-color-primary)" }}>
-                              {UserPrompt.title}
-                            </span>
-                            <span style={{ fontSize: "12px", color: "#999", marginLeft: "10px" }}>@{UserPrompt.owner}</span>
-                          </div>
-                        </div>
-                        {UserPrompt.remark && <p className={styles.showcaseCardBody}>👉 {UserPrompt.remark}</p>}
-                        <p className={styles.showcaseCardBody}>
-                          {UserPrompt.notes ? (
-                            <Tooltip placement="right" title={truncate(UserPrompt.notes, 300)} style={{ maxWidth: 450 }}>
-                              {UserPrompt.description}
-                            </Tooltip>
-                          ) : (
-                            UserPrompt.description
-                          )}
-                        </p>
-                      </div>
-                      <div style={{ display: "flex", justifyContent: "space-between" }}>
-                        <Space.Compact>
-                          <Tooltip title={translate({ id: "theme.CodeBlock.copy", message: "复制" })}>
-                            <Button type="default" onClick={() => handleCopyClick(index)}>
-                              <CopyOutlined />
-                              {copiedIndex === index && <Translate id="theme.CodeBlock.copied">已复制</Translate>}
-                            </Button>
-                          </Tooltip>
-                          <Tooltip title={translate({ message: "收藏" })}>
-                            <Button
-                              type="default"
-                              onClick={() => {
-                                if (!userAuth) {
-                                  messageApi.open({
-                                    type: "warning",
-                                    content: "Please log in to bookmark.",
-                                  });
-                                  return;
-                                }
-                                vote(UserPrompt.id, "upvote");
-                                bookmark(UserPrompt.id);
-                              }}>
-                              <HeartOutlined />
-                            </Button>
-                          </Tooltip>
-                        </Space.Compact>
-                        <Space.Compact>
-                          <Tooltip title={translate({ id: "upvote", message: "赞" })}>
-                            <Button
-                              type="default"
-                              onClick={() => {
-                                if (!userAuth) {
-                                  messageApi.open({
-                                    type: "warning",
-                                    content: "Please log in to vote.",
-                                  });
-                                  return;
-                                }
-                                vote(UserPrompt.id, "upvote");
-                              }}>
-                              <UpOutlined />
-                              {votedUpPromptIds.includes(UserPrompt.id) ? (UserPrompt.upvotes || 0) + 1 : UserPrompt.upvotes || 0}
-                            </Button>
-                          </Tooltip>
-                          <Tooltip title={translate({ id: "downvote", message: "踩" })}>
-                            <Button
-                              type="default"
-                              onClick={() => {
-                                if (!userAuth) {
-                                  messageApi.open({
-                                    type: "warning",
-                                    content: "Please log in to vote.",
-                                  });
-                                  return;
-                                }
-                                vote(UserPrompt.id, "downvote");
-                              }}>
-                              <DownOutlined />
-                              {votedDownPromptIds.includes(UserPrompt.id) ? (UserPrompt.downvotes || 0) + 1 : UserPrompt.downvotes || 0}
-                            </Button>
-                          </Tooltip>
-                        </Space.Compact>
-                      </div>
-                    </div>
-                  </li>
-                ))}
+                {loading
+                  ? SKELETON_ITEMS
+                  : userprompts.map((prompt, index) => (
+                      <PromptCard
+                        key={prompt.id}
+                        prompt={prompt}
+                        index={index}
+                        copiedIndex={copiedIndex}
+                        onCopy={handleCopyClick}
+                        onVote={vote}
+                        onBookmark={bookmark}
+                        votedUpPromptIds={votedUpPromptIds}
+                        votedDownPromptIds={votedDownPromptIds}
+                        userAuth={userAuth}
+                        messageApi={messageApi}
+                      />
+                    ))}
               </ul>
               <div style={{ display: "flex", justifyContent: "center" }}>
                 <Pagination current={currentPage} pageSize={pageSize} total={total} showQuickJumper showSizeChanger={false} onChange={onChangePage} />
@@ -336,7 +376,9 @@ const CommunityPrompts = () => {
               <Modal open={open} footer={null} onCancel={() => setOpen(false)}>
                 <LoginComponent />
               </Modal>
-              <ShareButtons shareUrl={Shareurl} title={TITLE} popOver={false} />
+              <Suspense fallback={null}>
+                <ShareButtons shareUrl={Shareurl} title={COMMU_TITLE} popOver={false} />
+              </Suspense>
             </div>
           </section>
         </ConfigProvider>
