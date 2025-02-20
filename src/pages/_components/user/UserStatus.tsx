@@ -1,21 +1,24 @@
-import React, { useContext, useState, useCallback } from "react";
+import React, { useContext, useState, useCallback, useMemo } from "react";
 import ExecutionEnvironment from "@docusaurus/ExecutionEnvironment";
 import Link from "@docusaurus/Link";
-import { Form, Input, Button, message, Modal, Typography, Switch, ConfigProvider } from "antd";
-import { UserOutlined, HeartOutlined, EditOutlined } from "@ant-design/icons";
+import { Form, Input, Button, message, Modal, Typography, Switch, ConfigProvider, Spin, Tooltip, Space } from "antd";
+import { UserOutlined, HeartOutlined, EditOutlined, LogoutOutlined, ClearOutlined } from "@ant-design/icons";
 import LoginComponent from "./login";
 import Translate, { translate } from "@docusaurus/Translate";
-import { submitPrompt } from "@site/src/api";
+import { submitPrompt, clearUserAllInfoCache } from "@site/src/api";
 import { AuthContext } from "../AuthContext";
 
-const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) => {
-  const { userAuth, setUserAuth, refreshUserAuth } = useContext(AuthContext);
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+const AddPromptModal = ({ open, setOpen, onFinish, loading }) => {
   const [form] = Form.useForm();
-  const [messageApi, contextHolder] = message.useMessage();
 
-  const AddPromptModal = ({ open, setOpen, form, onFinish, loading }) => (
+  // Reset form when modal is closed
+  React.useEffect(() => {
+    if (!open) {
+      form.resetFields();
+    }
+  }, [open, form]);
+
+  return (
     <ConfigProvider
       theme={{
         components: {
@@ -31,8 +34,15 @@ const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) =>
         })}
         open={open}
         footer={null}
-        onCancel={() => setOpen(false)}>
-        <Form form={form} onFinish={onFinish}>
+        maskClosable={!loading}
+        closable={!loading}
+        onCancel={() => !loading && setOpen(false)}>
+        <Form
+          form={form}
+          onFinish={(values) => {
+            onFinish(values, form);
+          }}
+          initialValues={{ share: true }}>
           <Form.Item
             name="title"
             rules={[
@@ -68,6 +78,8 @@ const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) =>
                 message: "提示词内容",
               })}
               rows={6}
+              maxLength={2000}
+              showCount
             />
           </Form.Item>
           <Form.Item name="remark">
@@ -115,34 +127,38 @@ const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) =>
       </Modal>
     </ConfigProvider>
   );
+};
+
+const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) => {
+  const { userAuth, setUserAuth, refreshUserAuth } = useContext(AuthContext);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const handleClearCache = useCallback(async () => {
+    await clearUserAllInfoCache();
+    refreshUserAuth();
+    messageApi.success(<Translate id="message.cache.cleared">缓存已清除</Translate>);
+  }, [refreshUserAuth]);
 
   const onFinish = useCallback(
-    async (values) => {
+    async (values, form) => {
       setLoading(true);
       try {
         await submitPrompt(values);
         refreshUserAuth();
-        messageApi.open({
-          type: "success",
-          content: <Translate id="message.success">词条提交成功！</Translate>,
-        });
-        messageApi.open({
-          type: "success",
-          content: <Translate id="message.success1">点击标签「我的提示词」查看已添加的自定义提示词。</Translate>,
-        });
+        messageApi.success(<Translate id="message.success">词条提交成功！</Translate>);
+        messageApi.success(<Translate id="message.success1">点击标签「我的提示词」查看已添加的自定义提示词。</Translate>);
         form.resetFields();
         setOpen(false);
       } catch (err) {
         console.error(err);
-        messageApi.open({
-          type: "error",
-          content: <Translate id="message.error">词条提交失败，请稍后重试</Translate>,
-        });
+        messageApi.error(<Translate id="message.error">词条提交失败，请稍后重试</Translate>);
       } finally {
         setLoading(false);
       }
     },
-    [form, refreshUserAuth]
+    [refreshUserAuth]
   );
 
   const handleLogout = useCallback(async () => {
@@ -155,29 +171,34 @@ const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) =>
     window.location.reload();
   }, [setUserAuth]);
 
-  if (userAuth === undefined) {
-    return <div>Loading...</div>;
-  } else if (userAuth) {
-    return (
-      <>
-        {contextHolder}
+  const loggedInButtons = useMemo(
+    () => (
+      <Space wrap size="middle">
         {!hideLinks.userCenter && (
-          <Link to="/user" className="button button--secondary" style={{ marginRight: "10px" }}>
+          <Link to="/user" className="button button--secondary">
             <UserOutlined />
             <Translate id="link.myaccount">账号设置</Translate>
           </Link>
         )}
         {!hideLinks.myFavorite && (
-          <Link to="/user/favorite" className="button button--secondary hide-on-small-screen-500" style={{ marginRight: "10px" }}>
-            <HeartOutlined style={{ marginRight: "1px" }} />
+          <Link to="/user/favorite" className="button button--secondary hide-on-small-screen-500">
+            <HeartOutlined />
             <Translate id="link.user">个人中心</Translate>
           </Link>
         )}
-        <button className="button button--primary" onClick={() => setOpen(true)} style={{ marginRight: "10px" }}>
+        <button className="button button--primary" onClick={() => setOpen(true)}>
           <EditOutlined /> <Translate id="link.addprompt">添加提示词</Translate>
         </button>
+        <Tooltip title={<Translate id="tooltip.clearCache">若您在其他设备更新了收藏或提示词，点击清除缓存以同步最新内容。</Translate>}>
+          <Button type="default" icon={<ClearOutlined />} onClick={handleClearCache} style={{ color: "gray" }}>
+            <span className="hide-on-small-screen-500">
+              <Translate id="button.clearCache">清除缓存</Translate>
+            </span>
+          </Button>
+        </Tooltip>
         <Button
           type="default"
+          icon={<LogoutOutlined />}
           onClick={() => {
             Modal.confirm({
               title: "Confirm Logout",
@@ -186,27 +207,55 @@ const UserStatus = ({ hideLinks = { userCenter: false, myFavorite: false } }) =>
             });
           }}
           style={{ color: "gray" }}>
-          <Translate id="button.logout">退出登录</Translate>
+          <span className="hide-on-small-screen-500">
+            <Translate id="button.logout">退出登录</Translate>
+          </span>
         </Button>
-        <AddPromptModal open={open} setOpen={setOpen} form={form} onFinish={onFinish} loading={loading} />
-      </>
-    );
-  } else {
-    return (
+      </Space>
+    ),
+    [hideLinks, handleLogout]
+  );
+
+  const loggedOutButtons = useMemo(
+    () => (
       <>
-        {contextHolder}
         <button className="button button--secondary" onClick={() => setOpen(true)} style={{ marginRight: "10px" }}>
           <Translate id="button.login">登录</Translate>
         </button>
         <Link className="button button--primary" to="/community-prompts">
           <Translate id="showcase.header.button">🙏 分享你的提示词</Translate>
         </Link>
-        <Modal open={open} footer={null} onCancel={() => setOpen(false)}>
-          <LoginComponent />
-        </Modal>
       </>
+    ),
+    []
+  );
+
+  if (userAuth === undefined) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "50px" }}>
+        <Spin size="small" />
+      </div>
     );
   }
+
+  return (
+    <>
+      {contextHolder}
+      {userAuth ? (
+        <>
+          {loggedInButtons}
+          <AddPromptModal open={open} setOpen={setOpen} onFinish={onFinish} loading={loading} />
+        </>
+      ) : (
+        <>
+          {loggedOutButtons}
+          <Modal open={open} footer={null} onCancel={() => setOpen(false)}>
+            <LoginComponent />
+          </Modal>
+        </>
+      )}
+    </>
+  );
 };
 
-export default UserStatus;
+export default React.memo(UserStatus);
