@@ -105,7 +105,7 @@ const config = {
         items: [
           {
             to: "https://lobechat.tx88.eu.org/",
-            label: ""🔥 免费AI会话",
+            label: "🔥 免费AI会话",
             position: "left",
           },
           {
