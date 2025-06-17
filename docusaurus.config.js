@@ -13,7 +13,7 @@ const config = {
   favicon: "img/favicon.ico",
 
   // Set the production url of your site here
-  url: "https://www.aishort.top",
+  url: "https://prompt.tx88.eu.org",
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: "/",
@@ -104,8 +104,8 @@ const config = {
         },
         items: [
           {
-            to: "docs",
-            label: "📘 使用说明",
+            to: "https://lobechat.tx88.eu.org/",
+            label: ""🔥 免费AI会话",
             position: "left",
           },
           {
@@ -114,17 +114,18 @@ const config = {
             position: "left",
           },
           {
+            to: "https://prompts.tx88.eu.org/",
+            label: "🛠️ 提示词优化器",
+            position: "left",
+          },
+          {
             type: "dropdown",
-            label: "🛠️ 应用工具",
+            label: "更多工具",
             position: "left",
             items: [
               {
-                label: "脚本扩展",
-                to: "/docs/extension",
-              },
-              {
                 label: "IMGPrompt",
-                href: "https://prompt.newzone.top/app",
+                href: "https://img-prompt.tx88.eu.org/",
               },
               {
                 label: "文字处理",
@@ -134,51 +135,13 @@ const config = {
                 label: "工具收藏",
                 href: "https://nav.newzone.top",
               },
-              {
-                label: "Find on Product Hunt",
-                href: "https://www.producthunt.com/posts/chatgpt-shortcut?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-chatgpt&#0045;shortcut",
-              },
+              
             ],
           },
-          {
-            type: "dropdown",
-            label: "反馈建议",
-            position: "left",
-            items: [
-              {
-                label: "📝 提交反馈",
-                to: "/feedback",
-              },
-              {
-                label: "💬 加入 QQ 群",
-                href: "https://img.newzone.top/qq736094782.jpg?imageMogr2/format/webp",
-              },
-              {
-                label: "📺 加入 Discord",
-                href: "https://discord.gg/PZTQfJ4GjX",
-              },
-            ],
-          },
+          
           // remove the language dropdown from the navbar (if you only have one language)
           { type: "localeDropdown", position: "right" },
-          {
-            title: "QQ Group",
-            href: "https://qm.qq.com/q/sHgB9eqd6E",
-            position: "right",
-            className: "header-qq-link",
-          },
-          {
-            title: "Discord",
-            href: "https://discord.gg/PZTQfJ4GjX",
-            position: "right",
-            className: "header-discord-link",
-          },
-          {
-            title: "GitHub",
-            href: "https://github.com/rockbenben/ChatGPT-Shortcut",
-            position: "right",
-            className: "header-github-link",
-          },
+          
         ],
       },
       footer: {
